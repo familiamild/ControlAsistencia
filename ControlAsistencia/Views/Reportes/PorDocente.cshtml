@@ -1,0 +1,67 @@
+﻿@model IEnumerable<ControlAsistencia.Models.RegistroAsistencia>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Consulta de Asistencia por Docente</h2>
+        <a asp-action="Index" class="btn btn-outline-secondary">Volver al Menú</a>
+    </div>
+
+    <form method="get" class="card card-body bg-light mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Seleccionar Docente</label>
+                <select name="docenteId" asp-items="ViewBag.Docentes" class="form-select">
+                    <option value="">-- Seleccionar --</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha Desde</label>
+                <input type="date" name="fechaDesde" value="@ViewBag.FechaDesde" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Fecha Hasta</label>
+                <input type="date" name="fechaHasta" value="@ViewBag.FechaHasta" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100">Consultar</button>
+            </div>
+        </div>
+    </form>
+
+    @if (Model.Any())
+    {
+        <div class="alert alert-info">
+            <strong>Total de asistencias registradas:</strong> @Model.Count()
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Materia / Curso</th>
+                        <th>Código Generado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        <tr>
+                            <td>@r.FechaHora.ToString("dd/MM/yyyy")</td>
+                            <td>@r.FechaHora.ToString("HH:mm") hs</td>
+                            <td>@r.Curso?.Materia (@r.Curso?.CodigoCurso)</td>
+                            <td><code>@r.CodigoUtilizado</code></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center">
+            Seleccione un docente para visualizar el detalle de días e historial de asistencia.
+        </div>
+    }
+</div>

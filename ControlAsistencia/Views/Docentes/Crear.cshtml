@@ -1,0 +1,12 @@
+﻿@model ControlAsistencia.Models.Docente
+
+<div class="container mt-4" style="max-width: 500px;">
+    <h3>Alta de Docente</h3>
+    <form asp-action="Crear">
+        <div class="mb-3"><label>Legajo</label><input asp-for="Legajo" class="form-control" required /></div>
+        <div class="mb-3"><label>DNI</label><input asp-for="Dni" class="form-control" required /></div>
+        <div class="mb-3"><label>Apellido</label><input asp-for="Apellido" class="form-control" required /></div>
+        <div class="mb-3"><label>Nombre</label><input asp-for="Nombre" class="form-control" required /></div>
+        <button type="submit" class="btn btn-primary w-100">Guardar</button>
+    </form>
+</div>

@@ -1,0 +1,39 @@
+﻿@model IEnumerable<ControlAsistencia.Models.Docente>
+
+<div class="container mt-4">
+    <h2>Gestión de Docentes</h2>
+    <a asp-action="Crear" class="btn btn-primary mb-3">Nuevo Docente</a>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Legajo</th>
+                <th>DNI</th>
+                <th>Nombre</th>
+                <th>Cursos Asignados</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model)
+            {
+                <tr>
+                    <td>@d.Legajo</td>
+                    <td>@d.Dni</td>
+                    <td>@d.Apellido, @d.Nombre</td>
+                    <td>
+                        <ul>
+                            @foreach (var c in d.Cursos)
+                            {
+                                <li>@c.Materia (@c.CodigoCurso)</li>
+                            }
+                        </ul>
+                    </td>
+                    <td>
+                        <a asp-action="AgregarCurso" asp-route-docenteId="@d.Id" class="btn btn-sm btn-success">+ Agregar Curso</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

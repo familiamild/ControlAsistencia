@@ -1,0 +1,12 @@
+﻿@model ControlAsistencia.Models.Curso
+
+<div class="container mt-4" style="max-width: 500px;">
+    <h3>Asignar Curso</h3>
+    <form asp-action="AgregarCurso">
+        <input type="hidden" name="DocenteId" value="@ViewBag.DocenteId" />
+        <div class="mb-3"><label>Materia</label><input asp-for="Materia" class="form-control" required /></div>
+        <div class="mb-3"><label>Código Materia</label><input asp-for="CodigoMateria" class="form-control" required /></div>
+        <div class="mb-3"><label>Código Curso / Comisión</label><input asp-for="CodigoCurso" class="form-control" required /></div>
+        <button type="submit" class="btn btn-success w-100">Asignar Curso</button>
+    </form>
+</div>

@@ -1,0 +1,36 @@
+﻿<div class="container mt-4" style="max-width: 450px;">
+    <div class="card shadow">
+        <div class="card-header bg-dark text-white text-center">
+            <h4>Departamento Docente</h4>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Clave del Día</label>
+                <input type="password" id="claveAdmin" class="form-control" placeholder="Ingrese clave..." />
+            </div>
+            <button onclick="generar()" class="btn btn-warning w-100 font-weight-bold">Generar Código de Asistencia</button>
+
+            <div id="resultado" class="mt-4 text-center d-none">
+                <p class="mb-1 text-muted">Código Válido Generado:</p>
+                <h1 class="display-3 font-weight-bold text-success" id="codigoDisplay">----</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function generar() {
+        const data = new FormData();
+        data.append('clave', document.getElementById('claveAdmin').value);
+
+        const res = await fetch('/Admin/GenerarCodigo', { method: 'POST', body: data });
+        const result = await res.json();
+
+        if (result.exito) {
+            document.getElementById('resultado').classList.remove('d-none');
+            document.getElementById('codigoDisplay').innerText = result.codigo;
+        } else {
+            alert(result.mensaje);
+        }
+    }
+</script>

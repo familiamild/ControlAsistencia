@@ -1,0 +1,64 @@
+﻿<div class="container mt-4" style="max-width: 450px;">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center">
+            <h4>Control de Asistencia</h4>
+        </div>
+        <div class="card-body">
+            <div id="alerta" class="alert d-none"></div>
+
+            <div class="mb-3">
+                <label class="form-label">DNI del Docente</label>
+                <input type="tel" id="dni" class="form-control form-control-lg" placeholder="Ingrese DNI" onchange="buscarCursos()" />
+            </div>
+
+            <div class="mb-3 d-none" id="seccionCurso">
+                <label class="form-label">Seleccione Materia / Curso</label>
+                <select id="selectCurso" class="form-select form-select-lg"></select>
+            </div>
+
+            <div class="mb-3 d-none" id="seccionCodigo">
+                <label class="form-label">Código de 4 Dígitos</label>
+                <input type="number" id="codigo" class="form-control form-control-lg text-center" placeholder="1234" maxlength="4" />
+            </div>
+
+            <button id="btnMarcar" class="btn btn-success btn-lg w-100 d-none mt-2" onclick="marcarAsistencia()">
+                Marcar Presente
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function buscarCursos() {
+        const dni = document.getElementById('dni').value;
+        const res = await fetch(`/Asistencia/ObtenerCursosPorDni?dni=${dni}`);
+
+        if (res.ok) {
+            const cursos = await res.json();
+            const select = document.getElementById('selectCurso');
+            select.innerHTML = '<option value="">-- Seleccionar Curso --</option>';
+            cursos.forEach(c => select.innerHTML += `<option value="${c.id}">${c.descripcion}</option>`);
+
+            document.getElementById('seccionCurso').classList.remove('d-none');
+            document.getElementById('seccionCodigo').classList.remove('d-none');
+            document.getElementById('btnMarcar').classList.remove('d-none');
+        } else {
+            alert('DNI no registrado.');
+        }
+    }
+
+    async function marcarAsistencia() {
+        const data = new FormData();
+        data.append('dni', document.getElementById('dni').value);
+        data.append('cursoId', document.getElementById('selectCurso').value);
+        data.append('codigo', document.getElementById('codigo').value);
+
+        const res = await fetch('/Asistencia/Marcar', { method: 'POST', body: data });
+        const result = await res.json();
+
+        const alerta = document.getElementById('alerta');
+        alerta.classList.remove('d-none', 'alert-success', 'alert-danger');
+        alerta.classList.add(result.exito ? 'alert-success' : 'alert-danger');
+        alerta.innerText = result.mensaje;
+    }
+</script>

@@ -1,0 +1,18 @@
+﻿@{
+    ViewData["Title"] = "Módulo de Informes";
+}
+
+<div class="container mt-4" style="max-width: 600px;">
+    <h2 class="mb-4 text-center">Informes de Asistencia</h2>
+
+    <div class="list-group shadow-sm">
+        <a asp-action="PorRango" class="list-group-item list-group-item-action p-3">
+            <h5 class="mb-1">1. Reporte General por Rango de Fechas</h5>
+            <p class="mb-0 text-muted">Consulta la totalidad de asistencias registradas entre dos fechas determinadas.</p>
+        </a>
+        <a asp-action="PorDocente" class="list-group-item list-group-item-action p-3 mt-2">
+            <h5 class="mb-1">2. Reporte Individual por Docente</h5>
+            <p class="mb-0 text-muted">Filtra la asistencia detallada de un docente específico y sus días de concurrencia.</p>
+        </a>
+    </div>
+</div>
