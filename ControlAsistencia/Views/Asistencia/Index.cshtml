@@ -1,116 +1,132 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using ControlAsistencia.Data;
-using ControlAsistencia.Models;
-
-namespace ControlAsistencia.Controllers
-{
-public class AsistenciaController : Controller
-{
-private readonly ApplicationDbContext _context;
-
-public AsistenciaController(ApplicationDbContext context)
-{
-_context = context;
+@{
+    ViewData["Title"] = "Marcar Asistencia";
 }
 
-public async Task<IActionResult>
-Index()
-{
-await CargarDocentesViewBag();
-return View();
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h3 class="fw-bold mb-4 text-center">Marcar Asistencia</h3>
+
+                <div id="alertaMensaje" class="alert d-none" role="alert"></div>
+
+                <div class="mb-3">
+                    <label class="form-label">DNI o Legajo</label>
+                    <div class="input-group">
+                        <input type="text" id="dniInput" class="form-control" placeholder="Ingrese su DNI o legajo" />
+                        <button type="button" id="btnBuscar" class="btn btn-primary">Buscar</button>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="grupoCurso" style="display:none;">
+                    <label class="form-label">Curso</label>
+                    <select id="cursoSelect" class="form-select"></select>
+                </div>
+
+                <div class="mb-3" id="grupoCodigo" style="display:none;">
+                    <label class="form-label">Código de autorización</label>
+                    <input type="text" id="codigoInput" class="form-control" placeholder="Ingrese el código" />
+                </div>
+
+                <button type="button" id="btnMarcar" class="btn btn-success w-100" style="display:none;">
+                    Marcar Asistencia
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function () {
+            function mostrarMensaje(texto, tipo) {
+                $("#alertaMensaje")
+                    .removeClass("d-none alert-success alert-danger")
+                    .addClass("alert-" + tipo)
+                    .text(texto);
+            }
+
+            function ocultarMensaje() {
+                $("#alertaMensaje").addClass("d-none");
+            }
+
+            $("#btnBuscar").on("click", function () {
+                ocultarMensaje();
+                var dni = $("#dniInput").val().trim();
+
+                if (!dni) {
+                    mostrarMensaje("Ingrese un DNI o legajo.", "danger");
+                    return;
+                }
+
+                $("#grupoCurso").hide();
+                $("#grupoCodigo").hide();
+                $("#btnMarcar").hide();
+                $("#cursoSelect").empty();
+
+                $.ajax({
+                    url: "/Asistencia/ObtenerCursosPorDni",
+                    type: "GET",
+                    data: { dni: dni },
+                    success: function (cursos) {
+                        if (!cursos || cursos.length === 0) {
+                            mostrarMensaje("DNI no registrado o sin cursos asignados.", "danger");
+                            return;
+                        }
+
+                        $.each(cursos, function (i, curso) {
+                            $("#cursoSelect").append(
+                                $("<option></option>").val(curso.id).text(curso.descripcion)
+                            );
+                        });
+
+                        $("#grupoCurso").show();
+                        $("#grupoCodigo").show();
+                        $("#btnMarcar").show();
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 404) {
+                            mostrarMensaje("DNI no registrado o sin cursos asignados.", "danger");
+                        } else {
+                            mostrarMensaje("Ocurrió un error al buscar el DNI.", "danger");
+                        }
+                    }
+                });
+            });
+
+            $("#btnMarcar").on("click", function () {
+                ocultarMensaje();
+
+                var dni = $("#dniInput").val().trim();
+                var cursoId = $("#cursoSelect").val();
+                var codigo = $("#codigoInput").val().trim();
+
+                if (!codigo) {
+                    mostrarMensaje("Ingrese el código de autorización.", "danger");
+                    return;
+                }
+
+                $("#btnMarcar").prop("disabled", true);
+
+                $.ajax({
+                    url: "/Asistencia/Marcar",
+                    type: "POST",
+                    data: { dni: dni, cursoId: cursoId, codigo: codigo },
+                    success: function (resp) {
+                        $("#btnMarcar").prop("disabled", false);
+                        if (resp.exito) {
+                            mostrarMensaje(resp.mensaje, "success");
+                            $("#codigoInput").val("");
+                        } else {
+                            mostrarMensaje(resp.mensaje, "danger");
+                        }
+                    },
+                    error: function () {
+                        $("#btnMarcar").prop("disabled", false);
+                        mostrarMensaje("Ocurrió un error al registrar la asistencia.", "danger");
+                    }
+                });
+            });
+        });
+    </script>
 }
-
-// Este es el método exacto que tu vista JavaScript está llamando
-[HttpGet]
-public async Task<IActionResult>
-ObtenerCursosPorDni(string dni)
-{
-if (string.IsNullOrWhiteSpace(dni))
-{
-return BadRequest("DNI inválido");
-}
-
-string busqueda = dni.Trim();
-
-// Traemos los docentes junto con sus cursos asignados desde la base de datos
-var docentes = await _context.Docentes
-.Include(d => d.Cursos)
-.ToListAsync();
-
-var docente = docentes.FirstOrDefault(d =>
-(d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
-(d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
-
-if (docente == null || docente.Cursos == null || !docente.Cursos.Any())
-{
-return NotFound(); // Esto dispara el "DNI no registrado" en tu JS si no se encuentra
-}
-
-// Mapeamos los cursos al formato que espera la vista
-var listaCursos = docente.Cursos.Select(c => new {
-id = c.Id,
-descripcion = $"{c.Nombre} ({c.Id})"
-}).ToList();
-
-return Json(listaCursos);
-}
-
-// Método POST para registrar la asistencia final
-[HttpPost]
-public async Task<IActionResult>
-Marcar(string dni, int cursoId, string codigo)
-{
-var codigoValido = await _context.CodigosAutorizacion
-.FirstOrDefaultAsync(c => c.Codigo == codigo && !c.Usado);
-
-if (codigoValido == null)
-{
-return Json(new { exito = false, mensaje = "El código de autorización es inválido o ya fue utilizado." });
-}
-
-string busqueda = dni.Trim();
-var docente = await _context.Docentes
-.FirstOrDefaultAsync(d => d.Dni.ToString().Trim() == busqueda || d.Legajo.ToString().Trim() == busqueda);
-
-if (docente == null)
-{
-return Json(new { exito = false, mensaje = "El docente seleccionado no existe." });
-}
-
-DateTime fechaHoraArgentina = DateTime.UtcNow.AddHours(-3);
-
-var registro = new RegistroAsistencia
-{
-DocenteId = docente.Id,
-CursoId = cursoId,
-CodigoUtilizado = codigo,
-FechaHora = DateTime.SpecifyKind(fechaHoraArgentina, DateTimeKind.Utc)
-};
-
-codigoValido.Usado = true;
-
-_context.Add(registro);
-_context.CodigosAutorizacion.Update(codigoValido);
-await _context.SaveChangesAsync();
-
-return Json(new { exito = true, mensaje = $"Asistencia registrada correctamente para {docente.Apellido}, {docente.Nombre} a las {fechaHoraArgentina:HH:mm} hs." });
-}
-
-public IActionResult Exito()
-{
-return View();
-}
-
-private async Task CargarDocentesViewBag()
-{
-var docentes = await _context.Docentes
-.OrderBy(d => d.Apellido)
-.Select(d => new { Id = d.Id, NombreMostrar = $"{d.Apellido}, {d.Nombre}" })
-.ToListAsync();
-
-ViewBag.Docentes = new SelectList(docentes, "Id", "NombreMostrar");
-}
-}
-} 
