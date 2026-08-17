@@ -8,24 +8,28 @@ namespace ControlAsistencia.Controllers
     public class AdminController : Controller
     {
         private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _configuration;
 
-        public AdminController(ApplicationDbContext context, IConfiguration configuration)
+        public AdminController(ApplicationDbContext context)
         {
             _context = context;
-            _configuration = configuration;
         }
 
+        // GET: /Admin/GenerarCodigo
         public IActionResult GenerarCodigo()
         {
             return View();
         }
 
+        // POST: /Admin/GenerarCodigo
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GenerarCodigo(string clave)
         {
-            var claveCorrecta = _configuration["ClaveAdmin"] ?? "1234";
+            // Hora actual en Argentina (UTC-3)
+            DateTime fechaArgentina = DateTime.UtcNow.AddHours(-3);
+
+            // Genera la clave dinámica del día: "mild" + DD + MM + YY (Ejemplo hoy: mild160826)
+            string claveCorrecta = $"mild{fechaArgentina:ddMMyy}";
 
             if (clave != claveCorrecta)
             {
@@ -33,13 +37,15 @@ namespace ControlAsistencia.Controllers
                 return View();
             }
 
+            // Generar código aleatorio de 4 dígitos
             Random random = new Random();
             string codigoGenerado = random.Next(1000, 10000).ToString();
 
+            // Guardar en la base de datos con fecha UTC
             var nuevoCodigo = new CodigoAutorizacion
             {
                 Codigo = codigoGenerado,
-                FechaGeneracion = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-3), DateTimeKind.Utc),
+                FechaGeneracion = DateTime.SpecifyKind(fechaArgentina, DateTimeKind.Utc),
                 Usado = false
             };
 
