@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ControlAsistencia.Data;
@@ -76,14 +76,14 @@ namespace ControlAsistencia.Controllers
                 return Json(new { exito = false, mensaje = "El docente seleccionado no existe." });
             }
 
-            DateTime fechaHoraArgentina = DateTime.UtcNow.AddHours(-3);
+            DateTime fechaHoraUtc = DateTime.UtcNow;
 
             var registro = new RegistroAsistencia
             {
                 DocenteId = docente.Id,
                 CursoId = cursoId,
                 CodigoUtilizado = codigo,
-                FechaHora = DateTime.SpecifyKind(fechaHoraArgentina, DateTimeKind.Utc)
+                FechaHora = DateTime.SpecifyKind(fechaHoraUtc, DateTimeKind.Utc)
             };
 
             codigoValido.Usado = true;
@@ -91,6 +91,8 @@ namespace ControlAsistencia.Controllers
             _context.Add(registro);
             _context.CodigosAutorizacion.Update(codigoValido);
             await _context.SaveChangesAsync();
+
+            DateTime fechaHoraArgentina = fechaHoraUtc.AddHours(-3);
 
             return Json(new { exito = true, mensaje = $"Asistencia registrada correctamente para {docente.Apellido}, {docente.Nombre} a las {fechaHoraArgentina:HH:mm} hs." });
         }
