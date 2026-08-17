@@ -14,7 +14,6 @@ builder.Services.AddControllersWithViews();
 // Cadena de conexión (Local o Render)
 var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
-
 var connectionString = ParsePostgresConnectionString(rawConnectionString);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -50,7 +49,7 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Asistencia}/{action=Index}/{id?}");
 
 app.Run();
 
