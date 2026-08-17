@@ -1,10 +1,14 @@
-﻿namespace ControlAsistencia.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace ControlAsistencia.Models
 {
     public class CodigoAutorizacion
     {
         public int Id { get; set; }
         public string Codigo { get; set; } = string.Empty;
         public DateTime FechaGeneracion { get; set; }
-        public bool Usado { get; set; } = false; // <-- AGREGAMOS ESTA PROPIEDAD
+
+        [NotMapped]
+        public bool Usado { get; set; } = false;
     }
 }
