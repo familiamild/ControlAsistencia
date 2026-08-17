@@ -27,7 +27,7 @@ namespace ControlAsistencia.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GenerarCodigo(string clave)
         {
-            // Validar la clave ingresada con appsettings o valor por defecto
+            // Validar la clave ingresada
             var claveCorrecta = _configuration["ClaveAdmin"] ?? "1234";
 
             if (clave != claveCorrecta)
@@ -36,17 +36,15 @@ namespace ControlAsistencia.Controllers
                 return View();
             }
 
-            // Generar un código aleatorio de 4 dígitos
+            // Generar código de 4 dígitos
             Random random = new Random();
             string codigoGenerado = random.Next(1000, 10000).ToString();
 
-            // Crear el objeto del código
-            // SE SOLUCIONA EL ERROR DE POSTGRESQL FORZANDO EL KIND EN UTC:
+            // Guardar con fecha compatible con PostgreSQL (UTC)
             var nuevoCodigo = new CodigoAutorizacion
             {
                 Codigo = codigoGenerado,
-                FechaGeneracion = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-3), DateTimeKind.Utc),
-                Activo = true
+                FechaGeneracion = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-3), DateTimeKind.Utc)
             };
 
             _context.CodigosAutorizacion.Add(nuevoCodigo);
