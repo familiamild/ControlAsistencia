@@ -14,7 +14,6 @@ namespace ControlAsistencia.Controllers
             _context = context;
         }
 
-        // GET: /Docentes
         public async Task<IActionResult> Index()
         {
             var docentes = await _context.Docentes
@@ -23,21 +22,22 @@ namespace ControlAsistencia.Controllers
             return View(docentes);
         }
 
-        // AJAX GET: /Docentes/BuscarPorDni?dni=12345678
+        // Mismo método universal por si la vista lo llama desde aquí
         [HttpGet]
-        public async Task<IActionResult> BuscarPorDni(string dni)
+        public async Task<IActionResult> BuscarPorDni(string dni, string term, string q)
         {
-            if (string.IsNullOrWhiteSpace(dni))
+            string valorBusqueda = dni ?? term ?? q;
+            if (string.IsNullOrWhiteSpace(valorBusqueda))
             {
                 return Json(new { exito = false, mensaje = "Ingrese un DNI o Legajo válido." });
             }
 
-            string busqueda = dni.Trim();
+            string busqueda = valorBusqueda.Trim();
             var docentes = await _context.Docentes.ToListAsync();
 
             var docente = docentes.FirstOrDefault(d =>
-                d.Dni.ToString().Trim() == busqueda ||
-                d.Legajo.ToString().Trim() == busqueda);
+                (d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
+                (d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
 
             if (docente == null)
             {

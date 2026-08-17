@@ -15,28 +15,27 @@ namespace ControlAsistencia.Controllers
             _context = context;
         }
 
-        // GET: /Asistencia
         public async Task<IActionResult> Index()
         {
             await CargarDocentesViewBag();
             return View();
         }
 
-        // AJAX GET: /Asistencia/BuscarPorDni?dni=12345678
         [HttpGet]
-        public async Task<IActionResult> BuscarPorDni(string dni)
+        public async Task<IActionResult> BuscarPorDni(string dni, string term, string q)
         {
-            if (string.IsNullOrWhiteSpace(dni))
+            string valorBusqueda = dni ?? term ?? q;
+            if (string.IsNullOrWhiteSpace(valorBusqueda))
             {
                 return Json(new { exito = false, mensaje = "Ingrese un DNI o Legajo válido." });
             }
 
-            string busqueda = dni.Trim();
+            string busqueda = valorBusqueda.Trim();
             var docentes = await _context.Docentes.ToListAsync();
 
             var docente = docentes.FirstOrDefault(d =>
-                d.Dni.ToString().Trim() == busqueda ||
-                d.Legajo.ToString().Trim() == busqueda);
+                (d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
+                (d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
 
             if (docente == null)
             {
@@ -51,7 +50,6 @@ namespace ControlAsistencia.Controllers
             });
         }
 
-        // POST: /Asistencia
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(int docenteId, int cursoId, string codigo)
@@ -95,7 +93,6 @@ namespace ControlAsistencia.Controllers
             return RedirectToAction(nameof(Exito));
         }
 
-        // GET: /Asistencia/Exito
         public IActionResult Exito()
         {
             ViewBag.Mensaje = TempData["Exito"];
