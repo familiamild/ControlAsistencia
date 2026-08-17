@@ -41,17 +41,16 @@ namespace ControlAsistencia.Controllers
                 (d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
                 (d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
 
-            // Validado con Count == 0 para optimizar rendimiento
+            // Optimizado a Count == 0
             if (docente == null || docente.Cursos == null || docente.Cursos.Count == 0)
             {
                 return NotFound(); // Esto dispara el "DNI no registrado" en tu JS si no se encuentra
             }
 
-            // Mapeamos los cursos. Si tu propiedad en el modelo Curso se llama 'Nombre', dejalo así; 
-            // si se llama 'Descripcion', cambialo acá.
+            // Mapeamos los cursos usando el ID del curso de manera segura
             var listaCursos = docente.Cursos.Select(c => new {
                 id = c.Id,
-                descripcion = $"Curso ID: {c.Id}" // Reemplazá esto por c.Nombre o c.Descripcion según corresponda en tu modelo
+                descripcion = $"Curso ID: {c.Id}"
             }).ToList();
 
             return Json(listaCursos);
