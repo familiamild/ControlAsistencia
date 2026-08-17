@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ControlAsistencia.Models.RegistroAsistencia>
+@model IEnumerable<ControlAsistencia.Models.RegistroAsistencia>
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -45,7 +45,7 @@
                     @foreach (var r in Model)
                     {
                         <tr>
-                            <td>@r.FechaHora.ToString("dd/MM/yyyy HH:mm") hs</td>
+                            <td>@r.FechaHora.AddHours(-3).ToString("dd/MM/yyyy HH:mm") hs</td>
                             <td>@r.Docente?.Apellido, @r.Docente?.Nombre</td>
                             <td>@r.Docente?.Legajo</td>
                             <td>@r.Curso?.Materia (@r.Curso?.CodigoCurso)</td>
