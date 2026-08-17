@@ -106,4 +106,4 @@ namespace ControlAsistencia.Controllers
             ViewBag.Docentes = new SelectList(docentes, "Id", "NombreMostrar");
         }
     }
-}
+}  
