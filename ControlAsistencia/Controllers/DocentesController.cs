@@ -51,5 +51,45 @@ namespace ControlAsistencia.Controllers
                 nombre = $"{docente.Apellido}, {docente.Nombre}"
             });
         }
+
+        // Muestra el formulario para asignar un curso a un docente
+        [HttpGet]
+        public async Task<IActionResult> AgregarCurso(int docenteId)
+        {
+            var docente = await _context.Docentes.FindAsync(docenteId);
+            if (docente == null)
+            {
+                return NotFound();
+            }
+
+            ViewBag.DocenteId = docenteId;
+            ViewBag.NombreDocente = $"{docente.Apellido}, {docente.Nombre}";
+            return View(new Curso());
+        }
+
+        // Guarda el curso enviado desde el formulario
+        [HttpPost]
+        public async Task<IActionResult> AgregarCurso(Curso curso, int docenteId)
+        {
+            var docente = await _context.Docentes.FindAsync(docenteId);
+            if (docente == null)
+            {
+                return NotFound();
+            }
+
+            curso.DocenteId = docenteId;
+
+            if (!ModelState.IsValid)
+            {
+                ViewBag.DocenteId = docenteId;
+                ViewBag.NombreDocente = $"{docente.Apellido}, {docente.Nombre}";
+                return View(curso);
+            }
+
+            _context.Cursos.Add(curso);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index");
+        }
     }
 }
