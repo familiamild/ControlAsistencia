@@ -1,7 +1,7 @@
-﻿using ControlAsistencia.Data;
-using ControlAsistencia.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ControlAsistencia.Data;
+using ControlAsistencia.Models;
 
 namespace ControlAsistencia.Controllers
 {
@@ -9,49 +9,47 @@ namespace ControlAsistencia.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        public DocentesController(ApplicationDbContext context) => _context = context;
+        public DocentesController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
 
-        // Listado de docentes
+        // GET: /Docentes
         public async Task<IActionResult> Index()
         {
-            var docentes = await _context.Docentes.Include(d => d.Cursos).ToListAsync();
+            var docentes = await _context.Docentes
+                .Include(d => d.Cursos)
+                .ToListAsync();
             return View(docentes);
         }
 
-        // GET: Alta Docente
-        public IActionResult Crear() => View();
-
-        // POST: Alta Docente
-        [HttpPost]
-        public async Task<IActionResult> Crear(Docente docente)
+        // AJAX GET: /Docentes/BuscarPorDni?dni=12345678
+        [HttpGet]
+        public async Task<IActionResult> BuscarPorDni(string dni)
         {
-            if (ModelState.IsValid)
+            if (string.IsNullOrWhiteSpace(dni))
             {
-                _context.Docentes.Add(docente);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return Json(new { exito = false, mensaje = "Ingrese un DNI o Legajo válido." });
             }
-            return View(docente);
-        }
 
-        // GET: Asignar Curso a Docente
-        public IActionResult AgregarCurso(int docenteId)
-        {
-            ViewBag.DocenteId = docenteId;
-            return View();
-        }
+            string busqueda = dni.Trim();
+            var docentes = await _context.Docentes.ToListAsync();
 
-        // POST: Asignar Curso
-        [HttpPost]
-        public async Task<IActionResult> AgregarCurso(Curso curso)
-        {
-            if (ModelState.IsValid)
+            var docente = docentes.FirstOrDefault(d =>
+                d.Dni.ToString().Trim() == busqueda ||
+                d.Legajo.ToString().Trim() == busqueda);
+
+            if (docente == null)
             {
-                _context.Cursos.Add(curso);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return Json(new { exito = false, mensaje = "DNI no registrado." });
             }
-            return View(curso);
+
+            return Json(new
+            {
+                exito = true,
+                id = docente.Id,
+                nombre = $"{docente.Apellido}, {docente.Nombre}"
+            });
         }
     }
 }
