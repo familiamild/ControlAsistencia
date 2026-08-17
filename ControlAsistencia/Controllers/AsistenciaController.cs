@@ -66,7 +66,6 @@ namespace ControlAsistencia.Controllers
 
             string busqueda = dni.Trim();
 
-            // Protección agregada para evitar errores si algún docente tiene DNI o Legajo nulo en la BD
             var docente = await _context.Docentes
                 .FirstOrDefaultAsync(d =>
                     (d.Dni != null && d.Dni.Trim() == busqueda) ||
