@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ControlAsistencia.Data;
 using ControlAsistencia.Models;
-using System.Reflection;
 
 namespace ControlAsistencia.Controllers
 {
@@ -22,6 +21,7 @@ namespace ControlAsistencia.Controllers
             return View();
         }
 
+        // Este es el método exacto que tu vista JavaScript está llamando
         [HttpGet]
         public async Task<IActionResult> ObtenerCursosPorDni(string dni)
         {
@@ -32,6 +32,7 @@ namespace ControlAsistencia.Controllers
 
             string busqueda = dni.Trim();
 
+            // Traemos los docentes junto con sus cursos asignados desde la base de datos
             var docentes = await _context.Docentes
                 .Include(d => d.Cursos)
                 .ToListAsync();
@@ -40,26 +41,23 @@ namespace ControlAsistencia.Controllers
                 (d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
                 (d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
 
+            // Validado con Count == 0 para optimizar rendimiento
             if (docente == null || docente.Cursos == null || docente.Cursos.Count == 0)
             {
-                return NotFound();
+                return NotFound(); // Esto dispara el "DNI no registrado" en tu JS si no se encuentra
             }
 
-            // Detecta automáticamente cualquier propiedad de texto del curso sin importar su nombre exacto
-            var listaCursos = docente.Cursos.Select(c => {
-                var propiedadTexto = c.GetType().GetProperties()
-                    .FirstOrDefault(p => p.PropertyType == typeof(string))?.GetValue(c)?.ToString() ?? $"Curso {c.Id}";
-
-                return new
-                {
-                    id = c.Id,
-                    descripcion = propiedadTexto
-                };
+            // Mapeamos los cursos. Si tu propiedad en el modelo Curso se llama 'Nombre', dejalo así; 
+            // si se llama 'Descripcion', cambialo acá.
+            var listaCursos = docente.Cursos.Select(c => new {
+                id = c.Id,
+                descripcion = $"Curso ID: {c.Id}" // Reemplazá esto por c.Nombre o c.Descripcion según corresponda en tu modelo
             }).ToList();
 
             return Json(listaCursos);
         }
 
+        // Método POST para registrar la asistencia final
         [HttpPost]
         public async Task<IActionResult> Marcar(string dni, int cursoId, string codigo)
         {
