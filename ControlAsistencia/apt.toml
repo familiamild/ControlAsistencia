@@ -1,0 +1,2 @@
+﻿[build.apt]
+packages = ["libgssapi-krb5-2"]
