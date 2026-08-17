@@ -44,7 +44,6 @@ namespace ControlAsistencia.Controllers
                 return NotFound();
             }
 
-            // Usamos las propiedades reales de tu modelo Curso (Materia y CodigoCurso)
             var listaCursos = docente.Cursos.Select(c => new {
                 id = c.Id,
                 descripcion = $"{c.Materia} - Curso: {c.CodigoCurso}"
