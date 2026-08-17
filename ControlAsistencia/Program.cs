@@ -1,21 +1,20 @@
 using ControlAsistencia.Data;
 using Microsoft.EntityFrameworkCore;
 
-// 1. Evita el error de límite 'inotify' en Render
+// Desactiva el monitoreo de archivos para evitar límite inotify en Render
 Environment.SetEnvironmentVariable("DOTNET_hostBuilder:reloadConfigOnChange", "false");
 
-// 2. Compatibilidad global de fechas (DateTime) con PostgreSQL
+// Compatibilidad de fechas DateTime con PostgreSQL
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-// Obtener la URL de conexión (Entorno Render o Local appsettings)
+// Cadena de conexión (Local o Render)
 var rawConnectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Convierte la URL 'postgres://' al formato ADO.NET 'Host=...;' que exige Npgsql
 var connectionString = ParsePostgresConnectionString(rawConnectionString);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -25,7 +24,7 @@ var app = builder.Build();
 
 app.UseDeveloperExceptionPage();
 
-// Inicialización de base de datos al arrancar
+// Inicialización de la base de datos
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -33,8 +32,6 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
         context.Database.Migrate();
-
-        // Agrega la columna Usado si no existe
         context.Database.ExecuteSqlRaw("ALTER TABLE \"CodigosAutorizacion\" ADD COLUMN IF NOT EXISTS \"Usado\" boolean NOT NULL DEFAULT false;");
     }
     catch (Exception ex)
@@ -57,14 +54,11 @@ app.MapControllerRoute(
 
 app.Run();
 
-// Función auxiliar para transformar postgres:// a formato Npgsql ADO.NET
+// Transformador de postgres:// a formato ADO.NET
 static string ParsePostgresConnectionString(string? url)
 {
     if (string.IsNullOrWhiteSpace(url)) return string.Empty;
-
-    // Si ya viene en formato Key-Value (Host=...;Database=...), no lo modifica
-    if (!url.StartsWith("postgres://") && !url.StartsWith("postgresql://"))
-        return url;
+    if (!url.StartsWith("postgres://") && !url.StartsWith("postgresql://")) return url;
 
     var uri = new Uri(url);
     var userInfo = uri.UserInfo.Split(':');

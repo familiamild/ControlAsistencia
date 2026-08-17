@@ -16,18 +16,15 @@ namespace ControlAsistencia.Controllers
             _configuration = configuration;
         }
 
-        // GET: /Admin/GenerarCodigo
         public IActionResult GenerarCodigo()
         {
             return View();
         }
 
-        // POST: /Admin/GenerarCodigo
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GenerarCodigo(string clave)
         {
-            // Validar la clave ingresada
             var claveCorrecta = _configuration["ClaveAdmin"] ?? "1234";
 
             if (clave != claveCorrecta)
@@ -36,11 +33,9 @@ namespace ControlAsistencia.Controllers
                 return View();
             }
 
-            // Generar código de 4 dígitos
             Random random = new Random();
             string codigoGenerado = random.Next(1000, 10000).ToString();
 
-            // Guardar con fecha compatible con PostgreSQL (UTC)
             var nuevoCodigo = new CodigoAutorizacion
             {
                 Codigo = codigoGenerado,
