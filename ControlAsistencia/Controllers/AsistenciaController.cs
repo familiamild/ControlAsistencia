@@ -53,6 +53,7 @@ namespace ControlAsistencia.Controllers
         }
 
         [HttpPost]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Marcar(string dni, int cursoId, string codigo)
         {
             var codigoValido = await _context.CodigosAutorizacion
