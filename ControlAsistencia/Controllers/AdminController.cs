@@ -1,35 +1,25 @@
-﻿using ControlAsistencia.Data;
-using ControlAsistencia.Models;
+﻿using ControlAsistencia.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace ControlAsistencia.Controllers
+[HttpPost]
+public async Task<IActionResult> GenerarCodigo(string clave)
 {
-    public class AdminController : Controller
+    // 1. Tu validación de la clave (dejá la que ya tenés armada)
+    // si la clave está mal, devuelve el error...
+
+    // 2. CREACIÓN DEL CÓDIGO (ACÁ ESTÁ LA SOLUCIÓN)
+    var nuevoCodigo = new CodigoAutorizacion // (O el nombre de tu clase/modelo)
     {
-        private readonly ApplicationDbContext _context;
+        // ... tus otras propiedades (ej. Valor = "4120") ...
 
-        public AdminController(ApplicationDbContext context) => _context = context;
+        // ESTA ES LA LÍNEA QUE REEMPLAZA A DateTime.Now:
+        FechaCreacion = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-3), DateTimeKind.Utc)
+    };
 
-        public IActionResult Index() => View();
+    // 3. Guardar en la base de datos
+    _context.Add(nuevoCodigo);
+    await _context.SaveChangesAsync(); // Con el 'SpecifyKind' esto ya no falla.
 
-        [HttpPost]
-        public async Task<IActionResult> GenerarCodigo(string clave)
-        {
-            string claveCorrectaHoy = $"mild{DateTime.Now:ddMMyy}";
-
-            if (string.IsNullOrEmpty(clave) || clave.Trim().ToLower() != claveCorrectaHoy)
-            {
-                return Json(new { exito = false, mensaje = "Clave de acceso incorrecta para la fecha de hoy." });
-            }
-
-            Random rand = new Random();
-            string nuevoCodigo = rand.Next(1000, 10000).ToString();
-
-            var codigoEntity = new CodigoAutorizacion { Codigo = nuevoCodigo };
-            _context.CodigosAutorizacion.Add(codigoEntity);
-            await _context.SaveChangesAsync();
-
-            return Json(new { exito = true, codigo = nuevoCodigo });
-        }
-    }
+    return RedirectToAction("Index"); // O la vista a la que redirijas
 }
