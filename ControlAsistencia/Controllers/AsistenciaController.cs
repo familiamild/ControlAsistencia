@@ -33,9 +33,12 @@ namespace ControlAsistencia.Controllers
 
             string busqueda = dni.Trim();
 
-            // Busca por DNI o Legajo convirtiendo a texto para PostgreSQL
-            var docente = await _context.Docentes
-                .FirstOrDefaultAsync(d => d.Dni.ToString().Trim() == busqueda || d.Legajo.ToString().Trim() == busqueda);
+            // Se evalúa en memoria para garantizar coincidencia exacta de DNI/Legajo sin errores de SQL
+            var docentes = await _context.Docentes.ToListAsync();
+
+            var docente = docentes.FirstOrDefault(d =>
+                d.Dni.ToString().Trim() == busqueda ||
+                d.Legajo.ToString().Trim() == busqueda);
 
             if (docente == null)
             {
