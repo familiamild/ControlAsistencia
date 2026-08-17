@@ -1,4 +1,4 @@
-﻿using ControlAsistencia.Data;
+using ControlAsistencia.Data;
 using ControlAsistencia.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -25,13 +25,14 @@ namespace ControlAsistencia.Controllers
 
             if (fechaDesde.HasValue)
             {
-                query = query.Where(r => r.FechaHora >= fechaDesde.Value.Date);
+                // El día en Argentina (UTC-3) empieza 3 horas después en UTC
+                query = query.Where(r => r.FechaHora >= fechaDesde.Value.Date.AddHours(3));
             }
 
             if (fechaHasta.HasValue)
             {
-                // Se incluye todo el día hasta las 23:59:59
-                query = query.Where(r => r.FechaHora <= fechaHasta.Value.Date.AddDays(1).AddTicks(-1));
+                // Se incluye todo el día (hora Argentina) hasta las 23:59:59
+                query = query.Where(r => r.FechaHora <= fechaHasta.Value.Date.AddDays(1).AddHours(3).AddTicks(-1));
             }
 
             ViewBag.FechaDesde = fechaDesde?.ToString("yyyy-MM-dd");
@@ -61,12 +62,14 @@ namespace ControlAsistencia.Controllers
 
             if (fechaDesde.HasValue)
             {
-                query = query.Where(r => r.FechaHora >= fechaDesde.Value.Date);
+                // El día en Argentina (UTC-3) empieza 3 horas después en UTC
+                query = query.Where(r => r.FechaHora >= fechaDesde.Value.Date.AddHours(3));
             }
 
             if (fechaHasta.HasValue)
             {
-                query = query.Where(r => r.FechaHora <= fechaHasta.Value.Date.AddDays(1).AddTicks(-1));
+                // Se incluye todo el día (hora Argentina) hasta las 23:59:59
+                query = query.Where(r => r.FechaHora <= fechaHasta.Value.Date.AddDays(1).AddHours(3).AddTicks(-1));
             }
 
             var resultados = await query.OrderByDescending(r => r.FechaHora).ToListAsync();
