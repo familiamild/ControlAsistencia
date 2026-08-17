@@ -32,8 +32,6 @@ namespace ControlAsistencia.Controllers
             }
 
             string busqueda = dni.Trim();
-
-            // Se evalúa en memoria para garantizar coincidencia exacta de DNI/Legajo sin errores de SQL
             var docentes = await _context.Docentes.ToListAsync();
 
             var docente = docentes.FirstOrDefault(d =>
@@ -58,7 +56,6 @@ namespace ControlAsistencia.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(int docenteId, int cursoId, string codigo)
         {
-            // 1. Validar el código de autorización
             var codigoValido = await _context.CodigosAutorizacion
                 .FirstOrDefaultAsync(c => c.Codigo == codigo && !c.Usado);
 
@@ -69,7 +66,6 @@ namespace ControlAsistencia.Controllers
                 return View();
             }
 
-            // 2. Validar que el docente exista
             var docente = await _context.Docentes.FindAsync(docenteId);
             if (docente == null)
             {
@@ -78,10 +74,8 @@ namespace ControlAsistencia.Controllers
                 return View();
             }
 
-            // 3. Obtener la hora actual exacta de Argentina (UTC-3)
             DateTime fechaHoraArgentina = DateTime.UtcNow.AddHours(-3);
 
-            // 4. Crear el registro mapeando la propiedad CursoId
             var registro = new RegistroAsistencia
             {
                 DocenteId = docenteId,
@@ -90,7 +84,6 @@ namespace ControlAsistencia.Controllers
                 FechaHora = DateTime.SpecifyKind(fechaHoraArgentina, DateTimeKind.Utc)
             };
 
-            // 5. Marcar el código como usado
             codigoValido.Usado = true;
 
             _context.Add(registro);
