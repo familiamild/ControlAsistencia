@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ControlAsistencia.Data;
 using ControlAsistencia.Models;
+using System.Reflection;
 
 namespace ControlAsistencia.Controllers
 {
@@ -22,61 +23,68 @@ namespace ControlAsistencia.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> BuscarPorDni(string dni, string term, string q)
+        public async Task<IActionResult> ObtenerCursosPorDni(string dni)
         {
-            string valorBusqueda = dni ?? term ?? q;
-            if (string.IsNullOrWhiteSpace(valorBusqueda))
+            if (string.IsNullOrWhiteSpace(dni))
             {
-                return Json(new { exito = false, mensaje = "Ingrese un DNI o Legajo válido." });
+                return BadRequest("DNI inválido");
             }
 
-            string busqueda = valorBusqueda.Trim();
-            var docentes = await _context.Docentes.ToListAsync();
+            string busqueda = dni.Trim();
+
+            var docentes = await _context.Docentes
+                .Include(d => d.Cursos)
+                .ToListAsync();
 
             var docente = docentes.FirstOrDefault(d =>
                 (d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
                 (d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
 
-            if (docente == null)
+            if (docente == null || docente.Cursos == null || docente.Cursos.Count == 0)
             {
-                return Json(new { exito = false, mensaje = "DNI no registrado." });
+                return NotFound();
             }
 
-            return Json(new
-            {
-                exito = true,
-                id = docente.Id,
-                nombre = $"{docente.Apellido}, {docente.Nombre}"
-            });
+            // Detecta automáticamente cualquier propiedad de texto del curso sin importar su nombre exacto
+            var listaCursos = docente.Cursos.Select(c => {
+                var propiedadTexto = c.GetType().GetProperties()
+                    .FirstOrDefault(p => p.PropertyType == typeof(string))?.GetValue(c)?.ToString() ?? $"Curso {c.Id}";
+
+                return new
+                {
+                    id = c.Id,
+                    descripcion = propiedadTexto
+                };
+            }).ToList();
+
+            return Json(listaCursos);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(int docenteId, int cursoId, string codigo)
+        public async Task<IActionResult> Marcar(string dni, int cursoId, string codigo)
         {
             var codigoValido = await _context.CodigosAutorizacion
                 .FirstOrDefaultAsync(c => c.Codigo == codigo && !c.Usado);
 
             if (codigoValido == null)
             {
-                ViewBag.Error = "El código de autorización es inválido o ya fue utilizado.";
-                await CargarDocentesViewBag();
-                return View();
+                return Json(new { exito = false, mensaje = "El código de autorización es inválido o ya fue utilizado." });
             }
 
-            var docente = await _context.Docentes.FindAsync(docenteId);
+            string busqueda = dni.Trim();
+            var docente = await _context.Docentes
+                .FirstOrDefaultAsync(d => d.Dni.ToString().Trim() == busqueda || d.Legajo.ToString().Trim() == busqueda);
+
             if (docente == null)
             {
-                ViewBag.Error = "El docente seleccionado no existe.";
-                await CargarDocentesViewBag();
-                return View();
+                return Json(new { exito = false, mensaje = "El docente seleccionado no existe." });
             }
 
             DateTime fechaHoraArgentina = DateTime.UtcNow.AddHours(-3);
 
             var registro = new RegistroAsistencia
             {
-                DocenteId = docenteId,
+                DocenteId = docente.Id,
                 CursoId = cursoId,
                 CodigoUtilizado = codigo,
                 FechaHora = DateTime.SpecifyKind(fechaHoraArgentina, DateTimeKind.Utc)
@@ -86,16 +94,13 @@ namespace ControlAsistencia.Controllers
 
             _context.Add(registro);
             _context.CodigosAutorizacion.Update(codigoValido);
-
             await _context.SaveChangesAsync();
 
-            TempData["Exito"] = $"Asistencia registrada correctamente para {docente.Apellido}, {docente.Nombre} a las {fechaHoraArgentina:HH:mm} hs.";
-            return RedirectToAction(nameof(Exito));
+            return Json(new { exito = true, mensaje = $"Asistencia registrada correctamente para {docente.Apellido}, {docente.Nombre} a las {fechaHoraArgentina:HH:mm} hs." });
         }
 
         public IActionResult Exito()
         {
-            ViewBag.Mensaje = TempData["Exito"];
             return View();
         }
 
