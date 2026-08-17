@@ -21,7 +21,6 @@ namespace ControlAsistencia.Controllers
             return View();
         }
 
-        // Este es el método exacto que tu vista JavaScript está llamando
         [HttpGet]
         public async Task<IActionResult> ObtenerCursosPorDni(string dni)
         {
@@ -32,31 +31,28 @@ namespace ControlAsistencia.Controllers
 
             string busqueda = dni.Trim();
 
-            // Traemos los docentes junto con sus cursos asignados desde la base de datos
             var docentes = await _context.Docentes
                 .Include(d => d.Cursos)
                 .ToListAsync();
 
             var docente = docentes.FirstOrDefault(d =>
-                (d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
-                (d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
+                (d.Dni != null && d.Dni.Trim() == busqueda) ||
+                (d.Legajo != null && d.Legajo.Trim() == busqueda));
 
-            // Optimizado a Count == 0
             if (docente == null || docente.Cursos == null || docente.Cursos.Count == 0)
             {
-                return NotFound(); // Esto dispara el "DNI no registrado" en tu JS si no se encuentra
+                return NotFound();
             }
 
-            // Mapeamos los cursos usando el ID del curso de manera segura
+            // Usamos las propiedades reales de tu modelo Curso (Materia y CodigoCurso)
             var listaCursos = docente.Cursos.Select(c => new {
                 id = c.Id,
-                descripcion = $"Curso ID: {c.Id}"
+                descripcion = $"{c.Materia} - Curso: {c.CodigoCurso}"
             }).ToList();
 
             return Json(listaCursos);
         }
 
-        // Método POST para registrar la asistencia final
         [HttpPost]
         public async Task<IActionResult> Marcar(string dni, int cursoId, string codigo)
         {
@@ -70,7 +66,7 @@ namespace ControlAsistencia.Controllers
 
             string busqueda = dni.Trim();
             var docente = await _context.Docentes
-                .FirstOrDefaultAsync(d => d.Dni.ToString().Trim() == busqueda || d.Legajo.ToString().Trim() == busqueda);
+                .FirstOrDefaultAsync(d => d.Dni.Trim() == busqueda || d.Legajo.Trim() == busqueda);
 
             if (docente == null)
             {
