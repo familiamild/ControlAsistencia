@@ -44,7 +44,8 @@ namespace ControlAsistencia.Controllers
             var nuevoCodigo = new CodigoAutorizacion
             {
                 Codigo = codigoGenerado,
-                FechaGeneracion = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-3), DateTimeKind.Utc)
+                FechaGeneracion = DateTime.SpecifyKind(DateTime.UtcNow.AddHours(-3), DateTimeKind.Utc),
+                Usado = false
             };
 
             _context.CodigosAutorizacion.Add(nuevoCodigo);
