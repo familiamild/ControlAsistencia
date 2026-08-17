@@ -22,6 +22,28 @@ namespace ControlAsistencia.Controllers
             return View(docentes);
         }
 
+        // Muestra el formulario de alta de docente
+        [HttpGet]
+        public IActionResult Crear()
+        {
+            return View(new Docente());
+        }
+
+        // Guarda el docente nuevo enviado desde el formulario
+        [HttpPost]
+        public async Task<IActionResult> Crear(Docente docente)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(docente);
+            }
+
+            _context.Docentes.Add(docente);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index");
+        }
+
         // Mismo método universal por si la vista lo llama desde aquí
         [HttpGet]
         public async Task<IActionResult> BuscarPorDni(string dni, string term, string q)
