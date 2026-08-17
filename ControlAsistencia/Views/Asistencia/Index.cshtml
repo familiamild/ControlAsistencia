@@ -1,64 +1,116 @@
-﻿<div class="container mt-4" style="max-width: 450px;">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white text-center">
-            <h4>Control de Asistencia</h4>
-        </div>
-        <div class="card-body">
-            <div id="alerta" class="alert d-none"></div>
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using ControlAsistencia.Data;
+using ControlAsistencia.Models;
 
-            <div class="mb-3">
-                <label class="form-label">DNI del Docente</label>
-                <input type="tel" id="dni" class="form-control form-control-lg" placeholder="Ingrese DNI" onchange="buscarCursos()" />
-            </div>
+namespace ControlAsistencia.Controllers
+{
+public class AsistenciaController : Controller
+{
+private readonly ApplicationDbContext _context;
 
-            <div class="mb-3 d-none" id="seccionCurso">
-                <label class="form-label">Seleccione Materia / Curso</label>
-                <select id="selectCurso" class="form-select form-select-lg"></select>
-            </div>
+public AsistenciaController(ApplicationDbContext context)
+{
+_context = context;
+}
 
-            <div class="mb-3 d-none" id="seccionCodigo">
-                <label class="form-label">Código de 4 Dígitos</label>
-                <input type="number" id="codigo" class="form-control form-control-lg text-center" placeholder="1234" maxlength="4" />
-            </div>
+public async Task<IActionResult>
+Index()
+{
+await CargarDocentesViewBag();
+return View();
+}
 
-            <button id="btnMarcar" class="btn btn-success btn-lg w-100 d-none mt-2" onclick="marcarAsistencia()">
-                Marcar Presente
-            </button>
-        </div>
-    </div>
-</div>
+// Este es el método exacto que tu vista JavaScript está llamando
+[HttpGet]
+public async Task<IActionResult>
+ObtenerCursosPorDni(string dni)
+{
+if (string.IsNullOrWhiteSpace(dni))
+{
+return BadRequest("DNI inválido");
+}
 
-<script>
-    async function buscarCursos() {
-        const dni = document.getElementById('dni').value;
-        const res = await fetch(`/Asistencia/ObtenerCursosPorDni?dni=${dni}`);
+string busqueda = dni.Trim();
 
-        if (res.ok) {
-            const cursos = await res.json();
-            const select = document.getElementById('selectCurso');
-            select.innerHTML = '<option value="">-- Seleccionar Curso --</option>';
-            cursos.forEach(c => select.innerHTML += `<option value="${c.id}">${c.descripcion}</option>`);
+// Traemos los docentes junto con sus cursos asignados desde la base de datos
+var docentes = await _context.Docentes
+.Include(d => d.Cursos)
+.ToListAsync();
 
-            document.getElementById('seccionCurso').classList.remove('d-none');
-            document.getElementById('seccionCodigo').classList.remove('d-none');
-            document.getElementById('btnMarcar').classList.remove('d-none');
-        } else {
-            alert('DNI no registrado.');
-        }
-    }
+var docente = docentes.FirstOrDefault(d =>
+(d.Dni != null && d.Dni.ToString().Trim() == busqueda) ||
+(d.Legajo != null && d.Legajo.ToString().Trim() == busqueda));
 
-    async function marcarAsistencia() {
-        const data = new FormData();
-        data.append('dni', document.getElementById('dni').value);
-        data.append('cursoId', document.getElementById('selectCurso').value);
-        data.append('codigo', document.getElementById('codigo').value);
+if (docente == null || docente.Cursos == null || !docente.Cursos.Any())
+{
+return NotFound(); // Esto dispara el "DNI no registrado" en tu JS si no se encuentra
+}
 
-        const res = await fetch('/Asistencia/Marcar', { method: 'POST', body: data });
-        const result = await res.json();
+// Mapeamos los cursos al formato que espera la vista
+var listaCursos = docente.Cursos.Select(c => new {
+id = c.Id,
+descripcion = $"{c.Nombre} ({c.Id})"
+}).ToList();
 
-        const alerta = document.getElementById('alerta');
-        alerta.classList.remove('d-none', 'alert-success', 'alert-danger');
-        alerta.classList.add(result.exito ? 'alert-success' : 'alert-danger');
-        alerta.innerText = result.mensaje;
-    }
-</script>
+return Json(listaCursos);
+}
+
+// Método POST para registrar la asistencia final
+[HttpPost]
+public async Task<IActionResult>
+Marcar(string dni, int cursoId, string codigo)
+{
+var codigoValido = await _context.CodigosAutorizacion
+.FirstOrDefaultAsync(c => c.Codigo == codigo && !c.Usado);
+
+if (codigoValido == null)
+{
+return Json(new { exito = false, mensaje = "El código de autorización es inválido o ya fue utilizado." });
+}
+
+string busqueda = dni.Trim();
+var docente = await _context.Docentes
+.FirstOrDefaultAsync(d => d.Dni.ToString().Trim() == busqueda || d.Legajo.ToString().Trim() == busqueda);
+
+if (docente == null)
+{
+return Json(new { exito = false, mensaje = "El docente seleccionado no existe." });
+}
+
+DateTime fechaHoraArgentina = DateTime.UtcNow.AddHours(-3);
+
+var registro = new RegistroAsistencia
+{
+DocenteId = docente.Id,
+CursoId = cursoId,
+CodigoUtilizado = codigo,
+FechaHora = DateTime.SpecifyKind(fechaHoraArgentina, DateTimeKind.Utc)
+};
+
+codigoValido.Usado = true;
+
+_context.Add(registro);
+_context.CodigosAutorizacion.Update(codigoValido);
+await _context.SaveChangesAsync();
+
+return Json(new { exito = true, mensaje = $"Asistencia registrada correctamente para {docente.Apellido}, {docente.Nombre} a las {fechaHoraArgentina:HH:mm} hs." });
+}
+
+public IActionResult Exito()
+{
+return View();
+}
+
+private async Task CargarDocentesViewBag()
+{
+var docentes = await _context.Docentes
+.OrderBy(d => d.Apellido)
+.Select(d => new { Id = d.Id, NombreMostrar = $"{d.Apellido}, {d.Nombre}" })
+.ToListAsync();
+
+ViewBag.Docentes = new SelectList(docentes, "Id", "NombreMostrar");
+}
+}
+}
