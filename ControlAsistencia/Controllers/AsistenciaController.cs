@@ -22,6 +22,34 @@ namespace ControlAsistencia.Controllers
             return View();
         }
 
+        // AJAX GET: /Asistencia/BuscarPorDni?dni=12345678
+        [HttpGet]
+        public async Task<IActionResult> BuscarPorDni(string dni)
+        {
+            if (string.IsNullOrWhiteSpace(dni))
+            {
+                return Json(new { exito = false, mensaje = "Ingrese un DNI o Legajo válido." });
+            }
+
+            string busqueda = dni.Trim();
+
+            // Busca por DNI o Legajo convirtiendo a texto para PostgreSQL
+            var docente = await _context.Docentes
+                .FirstOrDefaultAsync(d => d.Dni.ToString().Trim() == busqueda || d.Legajo.ToString().Trim() == busqueda);
+
+            if (docente == null)
+            {
+                return Json(new { exito = false, mensaje = "DNI no registrado." });
+            }
+
+            return Json(new
+            {
+                exito = true,
+                id = docente.Id,
+                nombre = $"{docente.Apellido}, {docente.Nombre}"
+            });
+        }
+
         // POST: /Asistencia
         [HttpPost]
         [ValidateAntiForgeryToken]
