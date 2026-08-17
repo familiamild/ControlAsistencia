@@ -1,18 +1,18 @@
 using ControlAsistencia.Data;
 using Microsoft.EntityFrameworkCore;
 
-// 1. DESACTIVAR EL MONITOREO DE ARCHIVOS EN LINUX (EVITA EL ERROR INOTIFY DE RENDER):
+// 1. Evita el error de límite 'inotify' en el entorno de Render
 Environment.SetEnvironmentVariable("DOTNET_hostBuilder:reloadConfigOnChange", "false");
 
-// 2. SOLUCIÓN GLOBAL PARA DATETIME EN POSTGRESQL:
+// 2. Solución global para compatibilidad de DateTime con PostgreSQL
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Configuración de servicios
 builder.Services.AddControllersWithViews();
 
-// Configurar DbContext para PostgreSQL / Render
+// Configuración de base de datos (Cadena local o Variable de entorno de Render)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? Environment.GetEnvironmentVariable("DATABASE_URL");
 
@@ -21,23 +21,28 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 var app = builder.Build();
 
-// Aplicar migraciones automáticas al iniciar la aplicación
+// Inicialización de la base de datos al arrancar
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+
+        // Aplica migraciones de Entity Framework
         context.Database.Migrate();
+
+        // Agrega la columna 'Usado' automáticamente si falta en la tabla
+        context.Database.ExecuteSqlRaw("ALTER TABLE \"CodigosAutorizacion\" ADD COLUMN IF NOT EXISTS \"Usado\" boolean NOT NULL DEFAULT false;");
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Ocurrió un error al aplicar las migraciones a la base de datos.");
+        logger.LogError(ex, "Error al inicializar o actualizar la base de datos.");
     }
 }
 
-// Configure the HTTP request pipeline.
+// Pipeline HTTP
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
