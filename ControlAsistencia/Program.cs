@@ -9,10 +9,8 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuración de servicios
 builder.Services.AddControllersWithViews();
 
-// Configuración de base de datos (Cadena local o Variable de entorno de Render)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? Environment.GetEnvironmentVariable("DATABASE_URL");
 
@@ -21,6 +19,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 var app = builder.Build();
 
+// MUESTRA EL ERROR DETALLADO EN EL NAVEGADOR
+app.UseDeveloperExceptionPage();
+
 // Inicialización de la base de datos al arrancar
 using (var scope = app.Services.CreateScope())
 {
@@ -28,25 +29,16 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-
-        // Aplica migraciones de Entity Framework
         context.Database.Migrate();
 
-        // Agrega la columna 'Usado' automáticamente si falta en la tabla
+        // Intenta agregar la columna si falta
         context.Database.ExecuteSqlRaw("ALTER TABLE \"CodigosAutorizacion\" ADD COLUMN IF NOT EXISTS \"Usado\" boolean NOT NULL DEFAULT false;");
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Error al inicializar o actualizar la base de datos.");
+        logger.LogError(ex, "Error al inicializar la base de datos.");
     }
-}
-
-// Pipeline HTTP
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
